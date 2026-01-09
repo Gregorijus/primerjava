@@ -1,19 +1,142 @@
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open("primerjava-cache").then((cache) => {
-      return cache.addAll([
-        "/",
-        "/index.html",
-        "/manifest.json"
-      ]);
-    })
-  );
-});
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Primerjava cen vozil</title>
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});
+  <!-- PWA manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- VisionOS font -->
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .glass {
+      width: 100%;
+      max-width: 480px;
+      padding: 30px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 25px;
+      font-size: 28px;
+      color: #1b5e20;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.1);
+      font-size: 16px;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(10px);
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #2e7d32, #1b5e20);
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 4px 14px rgba(46,125,50,0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(46,125,50,0.4);
+    }
+
+    #result {
+      margin-top: 25px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #2e2e2e;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    a {
+      color: #1b5e20;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="glass">
+  <h1>Primerjava cen vozil</h1>
+
+  <input id="url" placeholder="Prilepi Copart link..." />
+
+  <button onclick="run()">Primerjaj</button>
+
+  <div id="result"></div>
+</div>
+
+<script>
+  // Register PWA service worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/service-worker.js");
+  }
+
+  async function run() {
+    const link = document.getElementById("url").value.trim();
+    const resultBox = document.getElementById("result");
+
+    if (!link) {
+      resultBox.innerHTML = "Vnesi Copart link.";
+      return;
+    }
+
+    resultBox.innerHTML = "Pridobivam podatke...";
+
+    try {
+      const res = await fetch("https://primerjava-api.avtopralnica.workers.dev/?url=" + encodeURIComponent(link));
+      const data = await res.json();
+
+      resultBox.innerHTML = `
+        <b>Vozilo:</b> ${data.make} ${data.model} (${data.year})<br>
+        <b>Povprečna cena:</b> ${data.avg} €<br><br>
+        <a href="${data.avtoUrl}" target="_blank">Odpri rezultate na Avto.net</a>
+      `;
+    } catch (e) {
+      resultBox.innerHTML = "Napaka pri pridobivanju podatkov.";
+    }
+  }
+</script>
+
+</body>
+</html>
